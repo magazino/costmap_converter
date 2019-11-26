@@ -37,11 +37,70 @@
  *********************************************************************/
 
 #include <costmap_converter/costmap_to_polygons.h>
+#include <costmap_converter/misc.h>
 #include <boost/thread.hpp>
 #include <boost/thread/mutex.hpp>
 #include <pluginlib/class_list_macros.h>
 
 PLUGINLIB_EXPORT_CLASS(costmap_converter::CostmapToPolygonsDBSMCCH, costmap_converter::BaseCostmapToPolygons)
+
+namespace
+{
+
+/**
+ * @brief Douglas-Peucker Algorithm for fitting lines into ordered set of points
+ * 
+ * Douglas-Peucker Algorithm, see https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm
+ * 
+ * @param pointList the initial set of points
+ * @param epsilon distance criteria for removing point if it is smaller to the line segment than this
+ * @param result the simplified polygon
+ */
+void douglasPeucker(const std::vector<geometry_msgs::Point32> &pointList, double epsilon,
+                    std::vector<geometry_msgs::Point32> &result)
+{
+  if (pointList.size() <= 2)
+  {
+    result = pointList;
+    return;
+  }
+
+  // Find the point with the maximum distance from line between start and end
+  double dmax = 0.0;
+  size_t index = 0;
+  for (size_t i = 1; i < pointList.size() - 1; ++i)
+  {
+    double d = costmap_converter::computeSquaredDistanceToLineSegment(pointList[i], pointList.front(), pointList.back());
+    if (d > dmax)
+    {
+      index = i;
+      dmax = d;
+    }
+  }
+
+  if (dmax < epsilon * epsilon)
+  { // termination criterion reached, line is good enough
+    result.clear();
+    result.push_back(pointList.front());
+    result.push_back(pointList.back());
+    return;
+  }
+
+  // Recursive calls for the two splitted parts
+  std::vector<geometry_msgs::Point32> firstLineSimplified;
+  std::vector<geometry_msgs::Point32> firstLine(pointList.begin(), pointList.begin() + index + 1);
+  douglasPeucker(firstLine, epsilon, firstLineSimplified);
+
+  std::vector<geometry_msgs::Point32> secondLineSimplified;
+  std::vector<geometry_msgs::Point32> secondLine(pointList.begin() + index, pointList.end());
+  douglasPeucker(secondLine, epsilon, secondLineSimplified);
+
+  // combine the two lines into the result
+  result.assign(firstLineSimplified.begin(), firstLineSimplified.end() - 1);
+  result.insert(result.end(), secondLineSimplified.begin(), secondLineSimplified.end());
+}
+
+} // end namespace
 
 namespace costmap_converter
 {
@@ -406,15 +465,18 @@ void CostmapToPolygonsDBSMCCH::convexHull2(std::vector<KeyPoint>& cluster, geome
         P[minmin].toPointMsg(points.back());
     }
     
-    if (parameter_.min_keypoint_separation_>0) // TODO maybe migrate to algorithm above to speed up computation
-    {
-      double keypoint_sep_sqr = std::pow(parameter_.min_keypoint_separation_, 2);
-      for (int i=0; i < (int) polygon.points.size() - 1; ++i)
-      {
-        if ( std::pow((polygon.points[i].x - polygon.points[i+1].x),2) + std::pow((polygon.points[i].y - polygon.points[i+1].y),2) < keypoint_sep_sqr )
-          polygon.points.erase(polygon.points.begin()+i+1);
-      }
-    }
+    simplifyPolygon(polygon);
+}
+
+void CostmapToPolygonsDBSMCCH::simplifyPolygon(geometry_msgs::Polygon& polygon)
+{
+  if (polygon.points.size() <= 3) // nothing to do for triangles or lines
+    return;
+  std::vector<geometry_msgs::Point32> simplified_points;
+  // TODO Reason about better start conditions for splitting lines, e.g., by
+  // https://en.wikipedia.org/wiki/Rotating_calipers
+  douglasPeucker(polygon.points, parameter_.min_keypoint_separation_, simplified_points);
+  polygon.points = simplified_points;
 }
 
 void CostmapToPolygonsDBSMCCH::updatePolygonContainer(PolygonContainerPtr polygons)
@@ -437,7 +499,7 @@ void CostmapToPolygonsDBSMCCH::reconfigureCB(CostmapToPolygonsDBSMCCHConfig& con
   parameter_buffered_.max_distance_ = config.cluster_max_distance;
   parameter_buffered_.min_pts_ = config.cluster_min_pts;
   parameter_buffered_.max_pts_ = config.cluster_max_pts;
-  parameter_buffered_.min_keypoint_separation_ = config.cluster_min_pts;
+  parameter_buffered_.min_keypoint_separation_ = config.convex_hull_min_pt_separation;
 }
 
 }//end namespace costmap_converter
