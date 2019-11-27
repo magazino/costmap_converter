@@ -77,7 +77,7 @@ inline double computeDistanceToLine(const Point& point, const LinePoint& line_pt
   * @param[out] is_inbetween write \c true, if the point is placed inbetween start and end [optional]
   * @tparam Point generic point type that should provide x and y member fiels.
   * @tparam LinePoint generic point type that should provide x and y member fiels.
-  * @return (minimum) euclidean distance to the line segment
+  * @return (minimum) squared euclidean distance to the line segment
   */
 template <typename Point, typename LinePoint>
 inline double computeSquaredDistanceToLineSegment(const Point& point, const LinePoint& line_start, const LinePoint& line_end, bool* is_inbetween=NULL)

@@ -52,52 +52,51 @@ namespace
  * 
  * Douglas-Peucker Algorithm, see https://en.wikipedia.org/wiki/Ramer%E2%80%93Douglas%E2%80%93Peucker_algorithm
  * 
- * @param pointList the initial set of points
- * @param epsilon distance criteria for removing point if it is smaller to the line segment than this
+ * @param begin iterator pointing to the begin of the range of points
+ * @param end interator pointing to the end of the range of points
+ * @param epsilon distance criteria for removing points if it is closer to the line segment than this
  * @param result the simplified polygon
  */
-void douglasPeucker(const std::vector<geometry_msgs::Point32> &pointList, double epsilon,
-                    std::vector<geometry_msgs::Point32> &result)
+std::vector<geometry_msgs::Point32> douglasPeucker(std::vector<geometry_msgs::Point32>::iterator begin,
+  std::vector<geometry_msgs::Point32>::iterator end, double epsilon)
 {
-  if (pointList.size() <= 2)
+  if (std::distance(begin, end) <= 2)
   {
-    result = pointList;
-    return;
+    return std::vector<geometry_msgs::Point32>(begin, end);
   }
 
-  // Find the point with the maximum distance from line between start and end
+  // Find the point with the maximum distance from the line [begin, end)
   double dmax = 0.0;
-  size_t index = 0;
-  for (size_t i = 1; i < pointList.size() - 1; ++i)
+  std::vector<geometry_msgs::Point32>::iterator max_dist_it;
+  std::vector<geometry_msgs::Point32>::iterator last = std::prev(end);
+  for (auto it = std::next(begin); it != last; ++it)
   {
-    double d = costmap_converter::computeSquaredDistanceToLineSegment(pointList[i], pointList.front(), pointList.back());
+    double d = costmap_converter::computeSquaredDistanceToLineSegment(*it, *begin, *last);
     if (d > dmax)
     {
-      index = i;
+      max_dist_it = it;
       dmax = d;
     }
   }
 
   if (dmax < epsilon * epsilon)
   { // termination criterion reached, line is good enough
-    result.clear();
-    result.push_back(pointList.front());
-    result.push_back(pointList.back());
-    return;
+    std::vector<geometry_msgs::Point32> result;
+    result.push_back(*begin);
+    result.push_back(*last);
+    return result;
   }
 
   // Recursive calls for the two splitted parts
-  std::vector<geometry_msgs::Point32> firstLineSimplified;
-  std::vector<geometry_msgs::Point32> firstLine(pointList.begin(), pointList.begin() + index + 1);
-  douglasPeucker(firstLine, epsilon, firstLineSimplified);
+  auto firstLineSimplified = douglasPeucker(begin, std::next(max_dist_it), epsilon);
+  auto secondLineSimplified = douglasPeucker(max_dist_it, end, epsilon);
 
-  std::vector<geometry_msgs::Point32> secondLineSimplified;
-  std::vector<geometry_msgs::Point32> secondLine(pointList.begin() + index, pointList.end());
-  douglasPeucker(secondLine, epsilon, secondLineSimplified);
-
-  // combine the two lines into the result
-  result.assign(firstLineSimplified.begin(), firstLineSimplified.end() - 1);
-  result.insert(result.end(), secondLineSimplified.begin(), secondLineSimplified.end());
+  // Combine the two lines into one line and return the merged line.
+  // Note that we have to skip the first point of the second line, as it is duplicated above.
+  firstLineSimplified.insert(firstLineSimplified.end(),
+    std::make_move_iterator(std::next(secondLineSimplified.begin())),
+    std::make_move_iterator(secondLineSimplified.end()));
+  return firstLineSimplified;
 }
 
 } // end namespace
@@ -356,16 +355,7 @@ void CostmapToPolygonsDBSMCCH::convexHull(std::vector<KeyPoint>& cluster, geomet
     // TEST we skip the last point, since in our definition the polygon vertices do not contain the start/end vertex twice.
 //     polygon.points.resize(k-1); // TODO remove last point from the algorithm above to reduce computational cost
 
-    
-    
-    if (parameter_.min_keypoint_separation_>0) // TODO maybe migrate to algorithm above to speed up computation
-    {
-      for (int i=0; i < (int) polygon.points.size() - 1; ++i)
-      {
-        if ( std::sqrt(std::pow((polygon.points[i].x - polygon.points[i+1].x),2) + std::pow((polygon.points[i].y - polygon.points[i+1].y),2)) < parameter_.min_keypoint_separation_ )
-          polygon.points.erase(polygon.points.begin()+i+1);
-      }
-    }
+    simplifyPolygon(polygon);
 }
 
 
@@ -472,11 +462,9 @@ void CostmapToPolygonsDBSMCCH::simplifyPolygon(geometry_msgs::Polygon& polygon)
 {
   if (polygon.points.size() <= 3) // nothing to do for triangles or lines
     return;
-  std::vector<geometry_msgs::Point32> simplified_points;
   // TODO Reason about better start conditions for splitting lines, e.g., by
   // https://en.wikipedia.org/wiki/Rotating_calipers
-  douglasPeucker(polygon.points, parameter_.min_keypoint_separation_, simplified_points);
-  polygon.points = simplified_points;
+  polygon.points = douglasPeucker(polygon.points.begin(), polygon.points.end(), parameter_.min_keypoint_separation_);;
 }
 
 void CostmapToPolygonsDBSMCCH::updatePolygonContainer(PolygonContainerPtr polygons)

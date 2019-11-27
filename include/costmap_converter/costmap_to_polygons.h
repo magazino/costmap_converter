@@ -245,7 +245,7 @@ class CostmapToPolygonsDBSMCCH : public BaseCostmapToPolygons
      * 
      * We apply the Douglas-Peucker Algorithm to simplify the edges of the polygon.
      * Internally, the parameter min_keypoint_separation is used for deciding whether
-     * a point is considered small to an edge and to be merged into the line.
+     * a point is considered close to an edge and to be merged into the line.
      */
     void simplifyPolygon(geometry_msgs::Polygon& polygon);
     
