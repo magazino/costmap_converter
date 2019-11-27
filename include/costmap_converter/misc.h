@@ -85,13 +85,13 @@ inline double computeSquaredDistanceToLineSegment(const Point& point, const Line
     double dx = line_end.x - line_start.x;
     double dy = line_end.y - line_start.y;
     
-    double length = std::sqrt(dx*dx + dy*dy);
-    
+    double length_sqr = dx*dx + dy*dy;
+
     double u = 0;
-    
-    if (length>0)
-     u = ((point.x - line_start.x) * dx + (point.y - line_start.y)*dy) / length;
-    
+
+    if (length_sqr > 0)
+      u = ((point.x - line_start.x) * dx + (point.y - line_start.y) * dy) / length_sqr;
+
     if (is_inbetween)
       *is_inbetween = (u>=0 && u<=1);
   

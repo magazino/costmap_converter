@@ -460,7 +460,15 @@ void CostmapToPolygonsDBSMCCH::convexHull2(std::vector<KeyPoint>& cluster, geome
 
 void CostmapToPolygonsDBSMCCH::simplifyPolygon(geometry_msgs::Polygon& polygon)
 {
-  if (polygon.points.size() <= 3) // nothing to do for triangles or lines
+  int triangleThreshold = 3;
+  // check if first and last point are the same. If yes, a triangle has 4 points
+  if (polygon.points.size() > 1
+      && std::abs(polygon.points.front().x - polygon.points.back().x) < 1e-5
+      && std::abs(polygon.points.front().y - polygon.points.back().y) < 1e-5)
+  {
+    triangleThreshold = 4;
+  }
+  if (polygon.points.size() <= triangleThreshold) // nothing to do for triangles or lines
     return;
   // TODO Reason about better start conditions for splitting lines, e.g., by
   // https://en.wikipedia.org/wiki/Rotating_calipers

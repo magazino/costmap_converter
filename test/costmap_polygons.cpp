@@ -181,8 +181,46 @@ TEST(CostmapToPolygonsDBSMCCH, SimplifyPolygon)
   for (size_t i = 0; i < polygon.points.size(); ++i)
   {
     ASSERT_FLOAT_EQ(original_polygon.points[i].x, polygon.points[i].x);
-    ASSERT_FLOAT_EQ(original_polygon.points[i].y, polygon.points[i].y);  
+    ASSERT_FLOAT_EQ(original_polygon.points[i].y, polygon.points[i].y);
   }
+}
+
+TEST(CostmapToPolygonsDBSMCCH, SimplifyPolygonPerfectLines)
+{
+  const double simplification_threshold = 0.1;
+  CostmapToPolygons costmap_to_polygons;
+  costmap_to_polygons.parameters().min_keypoint_separation_ = simplification_threshold;
+  
+  geometry_msgs::Polygon polygon;
+  for (int i = 0; i <= 100; ++i)
+    polygon.points.push_back(create_point(i*1., 0.));
+  geometry_msgs::Point32 lastPoint = polygon.points.back();
+  for (int i = 0; i <= 100; ++i)
+    polygon.points.push_back(create_point(lastPoint.x, lastPoint.y + i * 1.));
+  lastPoint = polygon.points.back();
+  for (int i = 0; i <= 100; ++i)
+    polygon.points.push_back(create_point(lastPoint.x + i * 1., lastPoint.y));
+  lastPoint = polygon.points.back();
+  for (int i = 0; i <= 100; ++i)
+    polygon.points.push_back(create_point(lastPoint.x, lastPoint.y + i * 1.));
+  lastPoint = polygon.points.back();
+  for (int i = 0; i <= 100; ++i)
+    polygon.points.push_back(create_point(lastPoint.x + i * 1., lastPoint.y));
+
+  costmap_to_polygons.simplifyPolygon(polygon);
+  ASSERT_EQ(6, polygon.points.size());
+  ASSERT_FLOAT_EQ(  0., polygon.points[0].x);
+  ASSERT_FLOAT_EQ(  0., polygon.points[0].y);
+  ASSERT_FLOAT_EQ(100., polygon.points[1].x);
+  ASSERT_FLOAT_EQ(  0., polygon.points[1].y);
+  ASSERT_FLOAT_EQ(100., polygon.points[2].x);
+  ASSERT_FLOAT_EQ(100., polygon.points[2].y);
+  ASSERT_FLOAT_EQ(200., polygon.points[3].x);
+  ASSERT_FLOAT_EQ(100., polygon.points[3].y);
+  ASSERT_FLOAT_EQ(200., polygon.points[4].x);
+  ASSERT_FLOAT_EQ(200., polygon.points[4].y);
+  ASSERT_FLOAT_EQ(300., polygon.points[5].x);
+  ASSERT_FLOAT_EQ(200., polygon.points[5].y);
 }
 
 int main(int argc, char** argv)
