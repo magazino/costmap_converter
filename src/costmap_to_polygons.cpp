@@ -66,7 +66,7 @@ std::vector<geometry_msgs::Point32> douglasPeucker(std::vector<geometry_msgs::Po
   }
 
   // Find the point with the maximum distance from the line [begin, end)
-  double dmax = 0.0;
+  double dmax = std::numeric_limits<double>::lowest();
   std::vector<geometry_msgs::Point32>::iterator max_dist_it;
   std::vector<geometry_msgs::Point32>::iterator last = std::prev(end);
   for (auto it = std::next(begin); it != last; ++it)
