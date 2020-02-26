@@ -151,12 +151,6 @@ add_library(costmap_converter   src/costmap_to_polygons.cpp
                                 src/costmap_to_polygons_concave.cpp
                                 src/costmap_to_lines_convex_hull.cpp
                                 src/costmap_to_lines_ransac.cpp
-                                src/costmap_to_dynamic_obstacles/costmap_to_dynamic_obstacles.cpp
-                                src/costmap_to_dynamic_obstacles/background_subtractor.cpp
-                                src/costmap_to_dynamic_obstacles/blob_detector.cpp
-                                src/costmap_to_dynamic_obstacles/multitarget_tracker/Ctracker.cpp
-                                src/costmap_to_dynamic_obstacles/multitarget_tracker/Kalman.cpp
-                                src/costmap_to_dynamic_obstacles/multitarget_tracker/HungarianAlg.cpp
 )
 target_link_libraries(costmap_converter ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 # target_compile_features(costmap_converter PUBLIC cxx_nullptr cxx_range_for)

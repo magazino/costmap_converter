@@ -20,9 +20,11 @@ Build status of the *master* branch:
 The *costmap_converter* package is licensed under the BSD license.
 It depends on other ROS packages, which are listed in the package.xml. They are also BSD licensed.
 
-Some third-party dependencies are included that are licensed under different terms:
- - *MultitargetTracker*, GNU GPLv3, https://github.com/Smorodov/Multitarget-tracker
-   (partially required for the *CostmapToDynamicObstacles* plugin)
+~~Some third-party dependencies are included that are licensed under different terms:~~
+ - ~~*MultitargetTracker*, GNU GPLv3, https://github.com/Smorodov/Multitarget-tracker~~
+   ~~(partially required for the *CostmapToDynamicObstacles* plugin)~~
+
+(Was removed from the code base)
 
 All packages included are distributed in the hope that they will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the licenses for more details.
 
