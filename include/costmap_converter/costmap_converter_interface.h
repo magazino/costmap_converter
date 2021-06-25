@@ -186,6 +186,7 @@ public:
         }
         spin_thread_->join();
         delete spin_thread_;
+        spin_thread_ = nullptr;
       }
       
       if (spin_thread)
@@ -218,6 +219,7 @@ public:
         }
         spin_thread_->join();
         delete spin_thread_;
+        spin_thread_ = nullptr;
       }
     }
 
