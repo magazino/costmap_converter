@@ -56,6 +56,8 @@ CostmapToLinesDBSMCCH::~CostmapToLinesDBSMCCH()
 {
   if (dynamic_recfg_ != NULL)
     delete dynamic_recfg_;
+  // Wait until the spin_thread_ joins.
+  stopWorker();
 }
   
 void CostmapToLinesDBSMCCH::initialize(ros::NodeHandle nh)
